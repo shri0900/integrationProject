@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Send Data to Salesforce</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script>
+        let accessToken = "";
+        let instanceUrl = "";
+
+        function authenticate() {
+            // Salesforce OAuth2 endpoint
+            const url = "https://login.salesforce.com/services/oauth2/authorize?" +
+                "response_type=token&" +
+                "client_id=3MVG9wt4IL4O5wvIrDAEJFQDJvMD4VqtSegQFnTAt88EWyGBs3gWpoFgA5Adxyc.VD6Z90TG5RAw6VwOv3pbK&" +
+                "redirect_uri=https://shri0900.github.io/Integration/";
+
+            window.location.href = url;
+        }
+
+        function parseReturnedHash() {
+            const hash = window.location.hash.substring(1);
+            const params = new URLSearchParams(hash);
+            accessToken = params.get("access_token");
+            instanceUrl = params.get("instance_url");
+        }
+
+        function sendToSalesforce() {
+            const accountName = document.getElementById("accountName").value;
+            if (accessToken && instanceUrl) {
+                fetch(instanceUrl + "/services/data/v53.0/sobjects/Account", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": "Bearer " + accessToken,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        Name: accountName
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    alert("Data sent to Salesforce!");
+                })
+                .catch(error => {
+                    console.error("Error sending data to Salesforce:", error);
+                });
+            } else {
+                alert("Not authenticated with Salesforce.");
+            }
+        }
+
+        window.onload = () => {
+            parseReturnedHash();
+        }
+        
+        function getAccountInfo() {
+            const accountId = document.getElementById('accountId').value;
+        
+            if (accessToken && instanceUrl && accountId) {
+                fetch(`${instanceUrl}/services/data/v53.0/sobjects/Account/${accountId}`, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": "Bearer " + accessToken,
+                        "Content-Type": "application/json"
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    displayDataInTable(data);
+                })
+                .catch(error => {
+                    console.error("Error fetching account info:", error);
+                    alert("Error fetching account info. Check the console for more details.");
+                });
+            } else {
+                alert("Error: Please provide a valid Account ID.");
+            }
+        }
+        
+        function displayDataInTable(data) {
+            const tableContainer = document.getElementById('accountInfo');
+            let tableHTML = '<table border="1">';
+        
+            // Header
+            tableHTML += '<thead><tr><th>Key</th><th>Value</th></tr></thead>';
+        
+            // Rows
+            tableHTML += '<tbody>';
+            for (let key in data) {
+                if (data.hasOwnProperty(key)) {
+                    tableHTML += `<tr><td>${key}</td><td>${data[key]}</td></tr>`;
+                }
+            }
+            tableHTML += '</tbody>';
+        
+            tableHTML += '</table>';
+        
+            tableContainer.innerHTML = tableHTML;
+        }
+        
+    </script>
+</head>
+<body>
+    <button onclick="authenticate()">Authenticate with Salesforce</button>
+    <br><br>
+    <input type="text" id="accountName" placeholder="Enter Account Name">
+    <button onclick="sendToSalesforce()">Send to Salesforce</button>
+
+    <h2>Retrieve Account Information from Salesforce</h2>
+    <label for="accountId">Enter Account ID:</label>
+    <input type="text" id="accountId">
+    <button onclick="getAccountInfo()">Fetch Account Info</button>
+    <h3>Account Information:</h3>
+    <pre id="accountInfo"></pre>
+</body>
+</html>
